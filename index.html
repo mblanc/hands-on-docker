@@ -31,37 +31,383 @@
     <!-- MAIN CONTENT -->
     <div id="main_content_wrap" class="outer">
       <section id="main_content" class="inner">
-        <h3>
-<a name="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages"><span class="octicon octicon-link"></span></a>Welcome to GitHub Pages.</h3>
+        <h1>
+<a name="hands-on-docker" class="anchor" href="#hands-on-docker"><span class="octicon octicon-link"></span></a>Hands-on Docker</h1>
 
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here using GitHub Flavored Markdown, select a template crafted by a designer, and publish. After your page is generated, you can check out the new branch:</p>
+<p>Dans ce Hands-on, vous aurez à votre disposition une instance amazon où Docker a été préinstallé :</p>
 
-<pre><code>$ cd your_repo_root/repo_name
-$ git fetch origin
-$ git checkout gh-pages
+<p>Toutes les machines utilisent la même clef ssh, et ont le même login <strong>ubuntu</strong>.</p>
+
+<p>Pour vous connecter aux machines, récupérer le fichier docker.pem. N'oubliez pas de changer les permissions sur le fichier :</p>
+
+<pre><code>chmod 600 docker.pem
 </code></pre>
 
-<p>If you're using the GitHub for Mac, simply sync your repository and you'll see the new branch.</p>
+<p>Pour tester l'installation, et vous connecter à la première instance, taper la commande :</p>
+
+<pre><code>ssh -i docker.pem ubuntu@ec2-XX-XXX-XX-XXX.eu-west-1.compute.amazonaws.com
+</code></pre>
+
+<p>Pour éviter d'avoir à taper sudo avant chaque commande, démarrer un nouveau shell en tant que root:</p>
+
+<pre><code>sudo -s
+</code></pre>
+
+<p>Tout au long de ce Hands-On, consultez <a href="http://docs.docker.io/en/latest/">la Documentation en ligne de Docker</a> et n'hésitez pas pour chaque commande docker à lancer:</p>
+
+<pre><code>docker &lt;command&gt; --help
+</code></pre>
+
+<p>pour lister et tester les différentes options de chaque commande.</p>
+
+<h2>
+<a name="premiers-pas" class="anchor" href="#premiers-pas"><span class="octicon octicon-link"></span></a>Premiers pas</h2>
+
+<p>Installez Docker c'est facile:</p>
+
+<pre><code># ne lancez pas cette commande docker est déjà installé sur votre serveur
+curl http://get.docker.io | sh
+</code></pre>
+
+<p>Vérifiez que docker tourne en version 0.7.0</p>
+
+<pre><code>docker version
+</code></pre>
+
+<p>Listez les images docker présentes sur le serveur avec la commande:</p>
+
+<pre><code>docker images
+</code></pre>
+
+<p>busybox est une image docker basée sur <a href="http://www.busybox.net/about.html">Busybox</a> (pour allez vite, une distrib linux qui tient sur une disquette). Nous allons chercher une image de base un peu plus utile. </p>
+
+<p>Vous pouvez directement rechercher une image dans <a href="https://index.docker.io/">le repo central de Docker</a> avec la commande:</p>
+
+<pre><code>docker search &lt;search&gt; 
+# rechercher ubuntu -&gt; pour l'instant c'est un peu le bordel
+</code></pre>
+
+<p>Téléchargez l'image basée sur ubuntu créée par Docker Inc. (les images avec un nom simple sont celles créées par Docker Inc. les images créées par la communauté ont un nom du type namespace/name)</p>
+
+<pre><code>docker pull ubuntu
+</code></pre>
+
+<p>Lancez un conteneur docker qui execute un process simple:</p>
+
+<pre><code>docker run ubuntu echo hello, world
+</code></pre>
+
+<p>Que c'est il passé?</p>
+
+<ul>
+<li>création d'un conteneur lxc</li>
+<li>allocation d'un file system pour ce dernier</li>
+<li>montage d'un layer read-write</li>
+<li>allocation d'une interface réseau</li>
+<li>allocation d'une IP à ce conteneur</li>
+<li>execute le process dans ce conteneur</li>
+<li>capture stdout/stderr et vous l'imprime à l'écran</li>
+</ul><p>réexecutez la dernière commande plusieurs fois de suite et appréciez la rapidité avec laquelle tout ceci est effectué (imaginez la même chose avec des VMs...)</p>
+
+<p>Vérifiez les conteneurs docker qui tournent en ce moment sur le serveur:</p>
+
+<pre><code>docker ps
+</code></pre>
+
+<p>Il n'y en a pas, c'est normal, le conteneur docker s'arrête en même temps que le processus unique qu'il execute.</p>
+
+<p>Vérifiez les conteneurs docker qui ont tourné sur le serveur:</p>
+
+<pre><code>docker ps -a
+</code></pre>
 
 <h3>
-<a name="designer-templates" class="anchor" href="#designer-templates"><span class="octicon octicon-link"></span></a>Designer Templates</h3>
+<a name="mode-d%C3%A9tach%C3%A9" class="anchor" href="#mode-d%C3%A9tach%C3%A9"><span class="octicon octicon-link"></span></a>Mode détaché</h3>
 
-<p>We've crafted some handsome templates for you to use. Go ahead and continue to layouts to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved if it remained markdown format.</p>
+<p>Cette fois ci, lancez un process "long" dans une conteneur en mode détaché (~mode daemon)</p>
+
+<pre><code>CONTAINER_ID=$(docker run -d -t ubuntu /bin/sh -c "while true; do echo hello world; sleep 1; done")
+</code></pre>
+
+<p>Vérifiez que le conteneur tourne bien:</p>
+
+<pre><code>docker ps
+</code></pre>
+
+<p>Voir le contenu récent de stdout/stderr du conteneur:</p>
+
+<pre><code>docker logs $CONTAINER_ID
+</code></pre>
+
+<p>Vous pouvez vous "rattacher" au conteneur (Ctrl+C pour se "détacher"):</p>
+
+<pre><code>docker attach $CONTAINER_ID
+</code></pre>
+
+<p>Arrêtez le conteneur</p>
+
+<pre><code>docker stop $CONTAINER_ID
+</code></pre>
 
 <h3>
-<a name="rather-drive-stick" class="anchor" href="#rather-drive-stick"><span class="octicon octicon-link"></span></a>Rather Drive Stick?</h3>
+<a name="install-commit-test" class="anchor" href="#install-commit-test"><span class="octicon octicon-link"></span></a>Install, commit, test</h3>
 
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
+<p>Inatallez un nouveau package dans un conteneur:</p>
+
+<pre><code>docker run ubuntu apt-get install ping
+</code></pre>
+
+<p>Récupérez l'identifiant du dernier conteneur:</p>
+
+<pre><code>docker ps -l
+</code></pre>
+
+<p>Créez une image à partir de celui-ci (remplacer $USER par un identifiant du type première lettre de votre prénom+nom ou n'importe quoi de suffisament discriminant):</p>
+
+<pre><code>docker commit $CONTAINER_ID $USER/ping 
+</code></pre>
+
+<p>Lancez un process dans un conteneur crée à partir de cette image:</p>
+
+<pre><code>docker run $USER/ping ping www.google.com
+</code></pre>
+
+<p>Récupérez les données du conteneur:</p>
+
+<pre><code>docker inspect $CONTAINER_ID
+</code></pre>
+
+<p>Récupérez l'IP du conteneur</p>
+
+<pre><code>docker inspect $CONTAINER_ID | grep IPAddress | cut -d '"' -f 4
+</code></pre>
+
+<p>(facultatif) ou avec <a href="http://stedolan.github.io/jq/">jq</a></p>
+
+<p>installer jq:</p>
+
+<pre><code>wget http://stedolan.github.io/jq/download/linux64/jq
+mkdir –p ~/bin
+mv jq ~/bin 
+export PATH=$PATH:~/bin
+chmod +x ~/bin/jq
+</code></pre>
+
+<p>puis</p>
+
+<pre><code>$ docker inspect $CONTAINER_ID | jq -r '.[0].NetworkSettings.IPAddress' 
+</code></pre>
+
+<h2>
+<a name="cr%C3%A9er-un-conteneur-docker" class="anchor" href="#cr%C3%A9er-un-conteneur-docker"><span class="octicon octicon-link"></span></a>Créer un conteneur Docker</h2>
 
 <h3>
-<a name="authors-and-contributors" class="anchor" href="#authors-and-contributors"><span class="octicon octicon-link"></span></a>Authors and Contributors</h3>
+<a name="cr%C3%A9er-une-image-de-mani%C3%A8re-interactive" class="anchor" href="#cr%C3%A9er-une-image-de-mani%C3%A8re-interactive"><span class="octicon octicon-link"></span></a>Créer une image de manière interactive:</h3>
 
-<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor's GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
+<p>Lancer le process bash dans un conteneur en mode interactif:</p>
+
+<pre><code>docker run -i -t ubuntu:12.10 bash
+</code></pre>
+
+<p>Vous avez désomais un prompt bash au sein du conteneur.
+Dans le conteneur, mettre à jour les packages:</p>
+
+<pre><code>apt-get update
+</code></pre>
+
+<p>Installer redis:</p>
+
+<pre><code>apt-get install redis-server
+</code></pre>
+
+<p>Quitter le conteneur (et donc l'arrêter):</p>
+
+<pre><code>exit
+</code></pre>
+
+<p>De la même façon que dans le chapitre précedent, récupérer l'identifiant du conteneur et créer une image:</p>
+
+<pre><code>docker ps -a
+docker commit $CONTAINER_ID $USER/redis01
+</code></pre>
+
+<h2>
+<a name="exposer-un-port-du-conteneur-au-serveur-h%C3%B4te" class="anchor" href="#exposer-un-port-du-conteneur-au-serveur-h%C3%B4te"><span class="octicon octicon-link"></span></a>Exposer un port du conteneur au serveur hôte</h2>
+
+<p>Lancer votre image:</p>
+
+<pre><code>docker run -p 6379 -d -i -t $USER/redis01 /usr/bin/redis-server
+</code></pre>
+
+<p>-p 6379 pour exposer le port 6379 du conteneur, docker va mapper un port non utilisé (entre 449000 et 49900) de l'hôte sur le port 6379 du conteneur.</p>
+
+<p>récupérer l'IP et le port exposé par le conteneur avec <em>docker ps</em> ou</p>
+
+<pre><code>CONTAINER_ID=$(docker ps -l -q)
+ID=$(docker inspect $CONTAINER_ID | grep IPAddress | cut -d '"' -f 4)
+PORT=$(docker inspect $CONTAINER_ID | grep HostPort | cut -d '"' -f 4)
+</code></pre>
+
+<p>Un petit peu de redis pour tester:</p>
+
+<pre><code>telnet $IP 6379
+# OU
+telnet localhost $PORT
+Connected to ???.
+Escape character is '^]'.
+&gt; rpush users jean
+&gt; rpush users paul
+&gt; rpush users jacques
+&gt; llen users
+3
+&gt; lrange users 0 5
+jean paul jacques
+</code></pre>
 
 <h3>
-<a name="support-or-contact" class="anchor" href="#support-or-contact"><span class="octicon octicon-link"></span></a>Support or Contact</h3>
+<a name="cr%C3%A9er-une-image-%C3%A0-partir-dun-fichier-dockerfile" class="anchor" href="#cr%C3%A9er-une-image-%C3%A0-partir-dun-fichier-dockerfile"><span class="octicon octicon-link"></span></a>Créer une image à partir d'un fichier Dockerfile</h3>
 
-<p>Having trouble with Pages? Check out the documentation at <a href="http://help.github.com/pages">http://help.github.com/pages</a> or contact <a href="mailto:support@github.com">support@github.com</a> and we’ll help you sort it out.</p>
+<p>Créez la même image, cette fois ci de manière automatisée.
+Voir la documentation de Docker pour les fichiers Dockerfile.
+Créer dans un répertoire dédié un ficher <strong>Dockerfile</strong> dans lequel se trouvera:</p>
+
+<pre><code># redis image
+# VERSION 0.1
+
+FROM ubuntu:12.10
+MAINTAINER John Doe
+
+RUN apt-get -qq update
+RUN apt-get install -y redis-server
+
+EXPOSE 6379
+CMD ["/usr/bin/redis-server"]
+</code></pre>
+
+<p>Vous pouvez créer une image et la taguer en une seule commande à partir de ce fichier.
+Dans le répertoire, lancer la commande:</p>
+
+<pre><code>docker build -t $USER/redis-dockerfile .
+</code></pre>
+
+<p>Pour lancer un conteneur à partir de cette image :</p>
+
+<pre><code>docker run -d -t $USER/redis-dockerfile
+</code></pre>
+
+<h3>
+<a name="rajoutons-en-une-couche" class="anchor" href="#rajoutons-en-une-couche"><span class="octicon octicon-link"></span></a>Rajoutons en une couche</h3>
+
+<p>Dans un nouveau répertoire dédié, nous allons créer une image docker à partir de la précedente.
+Dans un fichier <strong>fixtures.sh</strong> écrivez:</p>
+
+<pre><code>#!/bin/bash
+
+/usr/bin/redis-server &amp;
+for ((i=1; i &lt;=100; i++))
+do
+    redis-cli rpush numbers $i
+done
+redis-cli shutdown
+</code></pre>
+
+<p>Dans le fichier <strong>Dockerfile</strong> écrivez:</p>
+
+<pre><code>FROM $USER/redis-dockerfile
+MAINTAINER John Doe
+
+ADD fixtures.sh /tmp/fixtures.sh
+RUN /tmp/fixtures.sh
+</code></pre>
+
+<p>Créez une deuxième version de votre serveur redis "dockerizé" prérempli de quelques données:</p>
+
+<pre><code>docker build -t $USER/redis-dockerfile2 .
+</code></pre>
+
+<h3>
+<a name="names-and-links-comment-les-conteneurs-se-parlent-sans-%C3%AAtre-expos%C3%A9-au-monde-exterieur" class="anchor" href="#names-and-links-comment-les-conteneurs-se-parlent-sans-%C3%AAtre-expos%C3%A9-au-monde-exterieur"><span class="octicon octicon-link"></span></a>Names and links: comment les conteneurs se parlent sans être exposé au monde exterieur.</h3>
+
+<p>Lancez un conteneur à partir de l'image créée précedemment et attribuez lui un nom:</p>
+
+<pre><code>docker run -d -t -name redis $USER/redis-dockerfile2    
+</code></pre>
+
+<p>Lancer une conteneur qui fera office de client de votre serveur redis:</p>
+
+<pre><code>docker run -i -t -link redis:redis mblanc/redis01 bash
+</code></pre>
+
+<p>Dans le prompt bash de votre conteneur, entrez:</p>
+
+<pre><code>env
+</code></pre>
+
+<p>Un certain nombre de variables d'environnement ont été ajoutées au conteneur pour facilement retrouver des infos sur le conteneur faisant tourner le serveur redis.
+Connectez vous à celui-ci et testez que tout marche bien:</p>
+
+<pre><code>redis-cli -h $REDIS_PORT_6379_TCP_ADDR -p $REDIS_PORT_6379_TCP_PORT
+redis &gt; lrange numbers 0 5
+1) "2"
+2) "3"
+3) "4"
+4) "5"
+5) "6"
+6) "7"
+</code></pre>
+
+<h3>
+<a name="le-docker-index-cest-cool" class="anchor" href="#le-docker-index-cest-cool"><span class="octicon octicon-link"></span></a>Le docker index c'est cool</h3>
+
+<p>Vous avez déjà essayé d'installer IPython sur une machine? C'est très, très penible.
+Plus maintenant avec docker:</p>
+
+<pre><code>docker pull crosbymichael/ipython
+docker run -d -p 80:8888 crosbymichael/ipython
+</code></pre>
+
+<p>Entrez l'url de votre instance ec2 dans votre browser préféré -&gt; et voilà!</p>
+
+<h2>
+<a name="bonus-point" class="anchor" href="#bonus-point"><span class="octicon octicon-link"></span></a>Bonus point</h2>
+
+<p>vous pouvez voir l'arborescence de vos conteneurs docker à l'aide des commandes:</p>
+
+<pre><code>apt-get install graphviz
+docker images -viz | dot -Tpng -o docker.png
+python -m SimpleHTTPServer 80
+</code></pre>
+
+<p>Entrez l'url de votre instance ec2 dans votre browser préféré</p>
+
+<h2>
+<a name="exercice" class="anchor" href="#exercice"><span class="octicon octicon-link"></span></a>Exercice</h2>
+
+<ol>
+<li>
+<p>En vous appuyant sur <a href="http://docs.mongodb.org/manual/tutorial/install-mongodb-on-ubuntu/">la doc de MongoDB</a>, créez une image docker qui fera tourner une instance mongo.</p>
+
+<p>Attention: mongodb a besoin de initctl qui n'est pas présent dans ubuntu, vous devrez  ajoutez ces commandes dans votre Dockerfile:</p>
+
+<p>RUN dpkg-divert --local --rename --add /sbin/initctl
+RUN ln -s /bin/true /sbin/initctl</p>
+
+<p>Solution : <a href="https://github.com/mblanc/hands-on-docker/blob/master/mongo/Dockerfile">https://github.com/mblanc/hands-on-docker/blob/master/mongo/Dockerfile</a></p>
+</li>
+<li>
+<p>En vous appuyant sur <a href="https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager">la doc de joyent</a>, créez un conteneur qui lancera l'application suivante <a href="https://github.com/mblanc/express-todo-example">https://github.com/mblanc/express-todo-example</a> dans un serveur node.js.</p>
+
+<p>(installez git <code>apt-get install git</code> clonez l'application <code>git clone https://github.com/mblanc/express-todo-example.git</code> ajoutez l'application dans votre conteneur à l'aide de la commande ADD dans votre Dockerfile)</p>
+
+<p>Attention: vous devrez modifier le fichier db.js pour que l'application se connecte au serveur mongo du premier conteneur)</p>
+
+<p>Solution: <a href="https://github.com/mblanc/hands-on-docker/tree/master/express-todo-example">https://github.com/mblanc/hands-on-docker/tree/master/express-todo-example</a></p>
+</li>
+<li><p>Lancez votre conteneur mongo</p></li>
+<li><p>Lancez votre conteneur lancant l'application node.js avec un lien vers le conteneur mongo et mappant le port 80 du serveur ec2 vers le port 8888 de ce conteneur.</p></li>
+<li><p>Entrez l'url de votre instance ec2 dans votre browser préféré</p></li>
+<li><p>Profit</p></li>
+</ol>
       </section>
     </div>
 
